@@ -51,6 +51,13 @@
 #define ERASE_COMMAND 0x41
 #define READ_UNPROTECT_COMMAND 0x92
 
+/* ST-Link clone flash layout (STM32F103x8/xB).
+   The bootloader occupies 0x08000000-0x08004000 and is not erasable
+   through this protocol, so a wipe only clears the application region. */
+#define APP_BASE   0x08004000u
+#define FLASH_TOP  0x08020000u   /* 128 KB part; use 0x08010000 for a 64 KB C8 */
+#define PAGE_SIZE  0x400u        /* 1 KB pages on medium-density F103 */
+
 int stlink_read_infos(libusb_device_handle *dev_handle,
 		      struct STLinkInfos *infos) {
   unsigned char data[20];
@@ -309,6 +316,31 @@ int stlink_erase(libusb_device_handle *dev_handle,
 			    sizeof(erase_command), 0, NULL);
   
   return res;
+}
+
+int stlink_wipe(libusb_device_handle *dev_handle) {
+  uint32_t addr;
+  int res;
+
+  printf("Wiping application region 0x%08X-0x%08X\n", APP_BASE, FLASH_TOP);
+
+  for (addr = APP_BASE; addr < FLASH_TOP; addr += PAGE_SIZE) {
+    res = stlink_erase(dev_handle, addr);
+    if (res) {
+      /* errTARGET (invalid address) just means we ran past the end of
+	 flash on a smaller part - treat that as a clean stop. Any other
+	 status is a real failure worth reporting. */
+      fprintf(stderr, "\nErase stopped at 0x%08X (res=%d)\n", addr, res);
+      break;
+    }
+
+    printf(".");
+    fflush(stdout);
+  }
+
+  printf("\n");
+
+  return 0;
 }
 
 int stlink_set_address(libusb_device_handle *dev_handle,
