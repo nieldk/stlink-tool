@@ -80,6 +80,7 @@ int stlink_dfu_download(libusb_device_handle *dev_handle,
 			struct STLinkInfos *stlink_infos);
 int stlink_erase(libusb_device_handle *dev_handle,
 		 uint32_t address);
+int stlink_wipe(libusb_device_handle *dev_handle);
 int stlink_set_address(libusb_device_handle *dev_handle,
 		       uint32_t address);
 int stlink_flash(libusb_device_handle *dev_handle,
