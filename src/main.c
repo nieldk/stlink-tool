@@ -33,6 +33,7 @@ void print_help(char *argv[]) {
   printf("Usage: %s [options] [firmware.bin]\n", argv[0]);
   printf("Options:\n");
   printf("\t-p\tProbe the ST-Link adapter\n");
+  printf("\t-e\tErase (wipe) the application firmware\n");
   printf("\t-h\tShow help\n\n");
   printf("\tApplication is started when called without argument or after firmware load\n\n");
 }
@@ -41,12 +42,15 @@ int main(int argc, char *argv[]) {
   libusb_context *usb_ctx;
   libusb_device_handle *dev_handle;
   struct STLinkInfos infos;
-  int res, i, opt, probe = 0;
+  int res, i, opt, probe = 0, erase = 0;
 
-  while ((opt = getopt(argc, argv, "hp")) != -1) {
+  while ((opt = getopt(argc, argv, "hpe")) != -1) {
     switch (opt) {
     case 'p': /* Probe mode */
       probe = 1;
+      break;
+    case 'e': /* Erase / wipe application firmware */
+      erase = 1;
       break;
     case 'h': /* Help */
       print_help(argv);
@@ -110,6 +114,9 @@ int main(int argc, char *argv[]) {
   }
 
   if (!probe) {
+    if (erase) {
+      stlink_wipe(dev_handle);
+    }
     if (do_load) {
       stlink_flash(dev_handle, argv[optind], 0x8004000, 1024, &infos);
     }
